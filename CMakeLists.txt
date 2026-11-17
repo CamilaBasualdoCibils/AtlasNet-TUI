@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 3.24)
+project(AtlasNetTUI LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(CTest)
+find_package(Boost CONFIG REQUIRED COMPONENTS beast)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Threads REQUIRED)
+add_library(AtlasNetControlPanelClient STATIC
+  AtlasNet/src/ControlPanel/Client/ControlPanelClient.cpp)
+add_library(AtlasNet::ControlPanelClient ALIAS AtlasNetControlPanelClient)
+target_include_directories(AtlasNetControlPanelClient PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/AtlasNet/include")
+target_link_libraries(AtlasNetControlPanelClient PUBLIC nlohmann_json::nlohmann_json
+  PRIVATE Boost::beast Threads::Threads)
+
+find_package(ftxui CONFIG QUIET)
+if(NOT ftxui_FOUND)
+  include(FetchContent)
+  set(FTXUI_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+  set(FTXUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(FTXUI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(ftxui
+    URL https://github.com/ArthurSonzogni/FTXUI/archive/refs/tags/v6.1.9.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  FetchContent_MakeAvailable(ftxui)
+endif()
+add_library(AtlasNetMap STATIC src/MapModel.cpp)
+target_include_directories(AtlasNetMap PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(AtlasNetMap PUBLIC AtlasNet::ControlPanelClient)
+add_executable(atlasnet-tui src/main.cpp)
+target_link_libraries(atlasnet-tui PRIVATE AtlasNetMap ftxui::component ftxui::dom ftxui::screen)
+if(BUILD_TESTING)
+  add_executable(atlasnet-map-tests tests/MapTests.cpp)
+  target_link_libraries(atlasnet-map-tests PRIVATE AtlasNetMap)
+  add_test(NAME atlasnet-map COMMAND atlasnet-map-tests)
+endif()

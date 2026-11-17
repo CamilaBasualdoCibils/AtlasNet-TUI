@@ -1,0 +1,3 @@
+[submodule "AtlasNet"]
+	path = AtlasNet
+	url = https://github.com/Landmark-Software/AtlasNet.git
